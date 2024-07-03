@@ -1,0 +1,71 @@
+Housing_Price <- read.csv(file.choose(), header = TRUE)
+str(Housing_Price)
+summary(Housing_Price)
+colnames(Housing_Price)
+
+# Check for missing values
+colSums(is.na(Housing_Price))
+
+# Handle missing values
+Housing_Price <- na.omit(Housing_Price)
+
+# Identify outliers in numeric variables using box plots
+boxplot(Housing_Price$total_rooms)
+boxplot(Housing_Price$total_bedrooms)
+boxplot(Housing_Price$population)
+boxplot(Housing_Price$households)
+boxplot(Housing_Price$median_income)
+boxplot(Housing_Price$median_house_value)
+
+# Define a function to winsorize outliers based on MAD
+winsorize <- function(x, coef = 3) {
+  mad <- median(abs(x - median(x, na.rm = TRUE, finite = TRUE)), na.rm = TRUE)
+  x <- ifelse(abs(x - median(x, na.rm = TRUE, finite = TRUE)) > coef * mad,
+              median(x, na.rm = TRUE, finite = TRUE) + coef * mad * sign(x - median(x, na.rm = TRUE, finite = TRUE)),
+              x)
+  x
+}
+
+# Apply winsorization to all columns except for categorical variables
+numeric_columns <- sapply(Housing_Price, is.numeric)
+numeric_columns[which(names(Housing_Price) == "ocean_proximity")] <- FALSE
+Housing_Price[numeric_columns] <- lapply(Housing_Price[numeric_columns], winsorize)
+
+# Check the results
+summary(Housing_Price)
+str(Housing_Price)
+
+# Identify outliers in numeric variables using box plots
+boxplot(Housing_Price$total_rooms)
+boxplot(Housing_Price$total_bedrooms)
+boxplot(Housing_Price$population)
+boxplot(Housing_Price$households)
+boxplot(Housing_Price$median_income)
+boxplot(Housing_Price$median_house_value)
+
+
+set.seed(123)  # Set a seed for reproducibility
+train_idx <- sample(1:nrow(Housing_Price), 0.7 * nrow(Housing_Price))  # 70% for training
+train_data <- Housing_Price[train_idx, ]
+test_data <- Housing_Price[-train_idx, ]
+
+library(tidyverse)
+library(lmtest)
+library(zoo)
+model1 <- lm(median_house_value ~ ., data = Housing_Price)
+summary(model1)
+
+
+model2 <- lm(median_house_value ~., data = train_data, family = Housing_Price)
+summary(model2)
+
+
+model3 <- lm(median_house_value ~ longitude + latitude + housing_median_age + total_rooms + total_bedrooms + population + households + median_income , data = train_data)
+summary(model3)
+
+# Make predictions on the testing set using model 1
+predictions <- predict(model3, newdata = test_data)
+
+# Compare the predicted values with the actual values in the testing set
+comparison <- data.frame(Actual = test_data$median_house_value, Predicted = predictions)
+comparison

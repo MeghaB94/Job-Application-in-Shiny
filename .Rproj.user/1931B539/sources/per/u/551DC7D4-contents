@@ -1,0 +1,4 @@
+library(MASS)
+df = Boston
+summary(df)
+write.csv("C:/Users/bhaga/OneDrive - Northeastern University/ALY 6050 (Wednesday)/NewYork House Price")
